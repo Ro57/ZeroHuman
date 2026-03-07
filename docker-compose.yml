@@ -1,38 +1,25 @@
 services:
-  db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: paperclip
-      POSTGRES_PASSWORD: paperclip
-      POSTGRES_DB: paperclip
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paperclip -d paperclip"]
-      interval: 2s
-      timeout: 5s
-      retries: 30
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
   server:
     build: .
     ports:
-      - "3100:3100"
+      - "${PORT}:${PORT}"
     environment:
-      DATABASE_URL: postgres://paperclip:paperclip@db:5432/paperclip
-      PORT: "3100"
-      SERVE_UI: "true"
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: "${PORT}"
+      SERVE_UI: "${SERVE_UI:-true}"
+      PAPERCLIP_SECRET: "${PAPERCLIP_SECRET:-}"
+      BETTER_AUTH_SECRET: "${PAPERCLIP_SECRET:-}"
+      PAPERCLIP_AGENT_JWT_SECRET: "${PAPERCLIP_SECRET:-}"
       PAPERCLIP_DEPLOYMENT_MODE: "authenticated"
-      PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
-      PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}"
-      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}"
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: "public"
+      PAPERCLIP_AUTH_BASE_URL_MODE: "explicit"
+      PAPERCLIP_AUTH_PUBLIC_BASE_URL: "http://20.228.188.70:3000"
+      PAPERCLIP_PUBLIC_URL: "http://20.228.188.70:3000"
+      PAPERCLIP_ALLOWED_HOSTNAMES: "20.228.188.70"
+      HOST: "0.0.0.0"
     volumes:
       - paperclip-data:/paperclip
-    depends_on:
-      db:
-        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  pgdata:
   paperclip-data:

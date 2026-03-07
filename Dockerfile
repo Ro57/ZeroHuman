@@ -19,20 +19,27 @@ COPY packages/adapters/cursor-local/package.json packages/adapters/cursor-local/
 COPY packages/adapters/openclaw-gateway/package.json packages/adapters/openclaw-gateway/
 COPY packages/adapters/opencode-local/package.json packages/adapters/opencode-local/
 COPY packages/adapters/pi-local/package.json packages/adapters/pi-local/
-
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
 COPY --from=deps /app /app
 COPY . .
 RUN pnpm --filter @paperclipai/ui build
-RUN pnpm --filter @paperclipai/server build
-RUN test -f server/dist/index.js || (echo "ERROR: server build output missing" && exit 1)
 
 FROM base AS production
 WORKDIR /app
 COPY --from=build /app /app
+RUN mkdir -p /app/node_modules/@paperclipai \
+ && ln -s /app/packages/adapter-utils /app/node_modules/@paperclipai/adapter-utils \
+ && ln -s /app/packages/shared /app/node_modules/@paperclipai/shared \
+ && ln -s /app/packages/db /app/node_modules/@paperclipai/db \
+ && ln -s /app/packages/adapters/claude-local /app/node_modules/@paperclipai/adapter-claude-local \
+ && ln -s /app/packages/adapters/codex-local /app/node_modules/@paperclipai/adapter-codex-local \
+ && ln -s /app/packages/adapters/cursor-local /app/node_modules/@paperclipai/adapter-cursor-local \
+ && ln -s /app/packages/adapters/openclaw-gateway /app/node_modules/@paperclipai/adapter-openclaw-gateway \
+ && ln -s /app/packages/adapters/opencode-local /app/node_modules/@paperclipai/adapter-opencode-local \
+ && ln -s /app/packages/adapters/pi-local /app/node_modules/@paperclipai/adapter-pi-local
 RUN npm install --global --omit=dev @anthropic-ai/claude-code@latest @openai/codex@latest opencode-ai
 
 ENV NODE_ENV=production \
@@ -49,4 +56,4 @@ ENV NODE_ENV=production \
 VOLUME ["/paperclip"]
 EXPOSE 3100
 
-CMD ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/dist/index.js"]
+CMD ["node", "--import", "./server/node_modules/tsx/dist/loader.mjs", "server/src/index.ts"]
